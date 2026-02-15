@@ -35,7 +35,7 @@ export const POS: React.FC<POSProps> = ({ menu }) => {
 
   const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
     const item = menu.find(m => m.id === id);
-    return sum + (item ? item.sellingPrice * qty : 0);
+    return sum + (item ? item.sellingPrice * (qty as number) : 0);
   }, 0);
 
   const handleSendWA = () => {
@@ -69,7 +69,7 @@ export const POS: React.FC<POSProps> = ({ menu }) => {
       const item = menu.find(m => m.id === id);
       if (item) {
         message += `${item.name} x${qty}\n`;
-        message += `Rp${(item.sellingPrice * qty).toLocaleString('id-ID')}\n`;
+        message += `Rp${(item.sellingPrice * (qty as number)).toLocaleString('id-ID')}\n`;
       }
     });
 
@@ -99,7 +99,7 @@ export const POS: React.FC<POSProps> = ({ menu }) => {
           return (
             <div key={id} className="flex justify-between">
               <span>{item.name} x{qty}</span>
-              <span>{formatCurrency(item.sellingPrice * qty)}</span>
+              <span>{formatCurrency(item.sellingPrice * (qty as number))}</span>
             </div>
           );
         })}

@@ -1,14 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { DailyRecord } from '../types';
 import { formatCurrency } from '../constants';
-import { TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
+import { TrendingUp, AlertCircle, DollarSign, Download, Share } from 'lucide-react';
 
 interface DashboardProps {
   dailyRecords: DailyRecord[];
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords }) => {
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showIosInstall, setShowIosInstall] = useState(false);
+
+  useEffect(() => {
+    // 1. Listen for Android install prompt
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // 2. Detect iOS for manual instructions
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    
+    if (isIos && !isStandalone) {
+      setShowIosInstall(true);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   // Get last 7 days of closed records
   const data = dailyRecords
     .filter(r => r.isClosed)
@@ -25,6 +57,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords }) => {
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in">
+      
+      {/* PWA Install Banners */}
+      {deferredPrompt && (
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
+          <div>
+            <h3 className="font-bold text-emerald-800 text-sm">Install Cuanly</h3>
+            <p className="text-xs text-emerald-600">Pasang aplikasi agar lebih mudah diakses!</p>
+          </div>
+          <button 
+            onClick={handleInstallClick}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-700 flex items-center gap-2"
+          >
+            <Download size={16} /> Install
+          </button>
+        </div>
+      )}
+
+      {showIosInstall && (
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <Share className="text-blue-600 shrink-0 mt-1" size={20} />
+            <div>
+              <h3 className="font-bold text-blue-800 text-sm">Install di iPhone/iPad</h3>
+              <p className="text-xs text-blue-600 mt-1">
+                1. Tap tombol <strong>Share</strong> di browser Safari Anda.<br/>
+                2. Pilih menu <strong>"Add to Home Screen"</strong> (Tambah ke Utama).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Stats */}
       <div className="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
         <div className="relative z-10">
