@@ -25,7 +25,7 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard dailyRecords={dailyRecords} />;
+        return <Dashboard dailyRecords={dailyRecords} setView={setCurrentView} />;
       case 'inventory':
         return <Inventory ingredients={ingredients} setIngredients={setIngredients} />;
       case 'menu':
@@ -42,7 +42,7 @@ const App: React.FC = () => {
           />
         );
       default:
-        return <Dashboard dailyRecords={dailyRecords} />;
+        return <Dashboard dailyRecords={dailyRecords} setView={setCurrentView} />;
     }
   };
 

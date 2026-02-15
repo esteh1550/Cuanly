@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { DailyRecord } from '../types';
+import { DailyRecord, ViewState } from '../types';
 import { formatCurrency } from '../constants';
-import { TrendingUp, AlertCircle, DollarSign, Download, Share } from 'lucide-react';
+import { TrendingUp, AlertCircle, DollarSign, Download, Share, Store, Lock, Play } from 'lucide-react';
 
 interface DashboardProps {
   dailyRecords: DailyRecord[];
+  setView: (view: ViewState) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords, setView }) => {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showIosInstall, setShowIosInstall] = useState(false);
@@ -52,12 +53,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords }) => {
       revenue: r.totalRevenue
     }));
 
-  const today = dailyRecords.find(r => r.id === new Date().toISOString().split('T')[0]);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const today = dailyRecords.find(r => r.id === todayStr);
   const totalProfit = dailyRecords.reduce((acc, curr) => acc + (curr.isClosed ? curr.netProfit : 0), 0);
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in">
       
+      {/* ACTION CARD (Top Priority) */}
+      <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100">
+        <h2 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">Status Toko Hari Ini</h2>
+        
+        {!today ? (
+          // Case 1: Store Not Open Yet
+          <button 
+            onClick={() => setView('operations')}
+            className="w-full bg-emerald-600 text-white py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all active:scale-[0.98]"
+          >
+            <Play size={24} fill="currentColor" />
+            <div className="text-left">
+              <span className="block font-bold text-lg">Buka Toko Hari Ini</span>
+              <span className="text-xs opacity-90 font-normal">Mulai jualan & catat target cuan</span>
+            </div>
+          </button>
+        ) : !today.isClosed ? (
+          // Case 2: Store is Open
+          <button 
+            onClick={() => setView('operations')}
+            className="w-full bg-amber-500 text-white py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 hover:bg-amber-600 transition-all active:scale-[0.98]"
+          >
+            <Lock size={24} />
+            <div className="text-left">
+              <span className="block font-bold text-lg">Tutup Toko & Hitung Cuan</span>
+              <span className="text-xs opacity-90 font-normal">Input sisa makanan untuk hitung profit bersih</span>
+            </div>
+          </button>
+        ) : (
+          // Case 3: Store is Closed (Report Ready)
+          <button 
+            onClick={() => setView('operations')}
+            className="w-full bg-gray-800 text-white py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 hover:bg-gray-900 transition-all active:scale-[0.98]"
+          >
+            <Store size={24} />
+            <div className="text-left">
+              <span className="block font-bold text-lg">Lihat Laporan Hari Ini</span>
+              <span className="text-xs opacity-90 font-normal">Toko sudah tutup. Klik untuk detail/revisi.</span>
+            </div>
+          </button>
+        )}
+      </div>
+
       {/* PWA Install Banners */}
       {deferredPrompt && (
         <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
@@ -142,8 +187,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ dailyRecords }) => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
-              <p>Belum ada data penjualan.</p>
+            <div className="h-full flex flex-col items-center justify-center text-gray-400 py-8 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200">
+              <Store size={32} className="mb-2 opacity-30" />
+              <p className="text-sm font-medium">Belum ada data penjualan.</p>
+              <p className="text-xs mt-1">Tekan tombol "Buka Toko" di atas untuk mulai.</p>
             </div>
           )}
         </div>

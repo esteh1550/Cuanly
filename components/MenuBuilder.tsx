@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Calculator, AlertTriangle, ChevronRight, Check, Edit2, Users, Info } from 'lucide-react';
 import { Ingredient, MenuItem, RecipeIngredient } from '../types';
 import { formatCurrency } from '../constants';
+import { MoneyInput } from './MoneyInput';
 
 interface MenuBuilderProps {
   ingredients: Ingredient[];
@@ -17,9 +18,9 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
   const [name, setName] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<RecipeIngredient[]>([]);
   const [batchYield, setBatchYield] = useState('1'); // New: Yield per batch
-  const [overhead, setOverhead] = useState(''); // Per Portion
+  const [overhead, setOverhead] = useState<number>(0); // Per Portion
   const [margin, setMargin] = useState('30');
-  const [sellingPrice, setSellingPrice] = useState('');
+  const [sellingPrice, setSellingPrice] = useState<number>(0);
 
   // Temp state for adding ingredient
   const [tempIngId, setTempIngId] = useState('');
@@ -30,17 +31,16 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
     const hpp = calculatePerPortionHPP();
     const marginPercent = parseFloat(margin) || 0;
     const recommended = hpp + (hpp * (marginPercent / 100));
-    // Note: We don't auto-set sellingPrice here to allow manual override, 
-    // but we could if we wanted strictly guided pricing.
+    // Note: We don't auto-set sellingPrice here to allow manual override
   }, [selectedIngredients, batchYield, overhead, margin]);
 
   const resetForm = () => {
     setName('');
     setSelectedIngredients([]);
     setBatchYield('1');
-    setOverhead('');
+    setOverhead(0);
     setMargin('30');
-    setSellingPrice('');
+    setSellingPrice(0);
     setEditingId(null);
     setView('list');
   };
@@ -56,9 +56,8 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
     const totalBatchCost = calculateBatchCost();
     const yieldCount = parseFloat(batchYield) || 1;
     const foodCostPerPortion = totalBatchCost / (yieldCount > 0 ? yieldCount : 1);
-    const ovhd = parseFloat(overhead) || 0;
     
-    return foodCostPerPortion + ovhd;
+    return foodCostPerPortion + overhead;
   };
 
   const handleAddIngredient = () => {
@@ -84,7 +83,7 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
     const baseCost = calculatePerPortionHPP(); // Final HPP per portion
     const marginPct = parseFloat(margin);
     const recommended = baseCost + (baseCost * (marginPct / 100));
-    const finalPrice = parseFloat(sellingPrice) || recommended;
+    const finalPrice = sellingPrice || recommended;
     const yieldCount = parseFloat(batchYield) || 1;
 
     const newItem: MenuItem = {
@@ -92,7 +91,7 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
       name,
       ingredients: selectedIngredients,
       batchYield: yieldCount,
-      overheadCost: parseFloat(overhead) || 0,
+      overheadCost: overhead,
       marginPercentage: marginPct,
       baseCost, // Storing unit cost for operations
       recommendedPrice: recommended,
@@ -111,9 +110,9 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
     setName(item.name);
     setSelectedIngredients(item.ingredients);
     setBatchYield(item.batchYield ? item.batchYield.toString() : '1');
-    setOverhead(item.overheadCost.toString());
+    setOverhead(item.overheadCost);
     setMargin(item.marginPercentage.toString());
-    setSellingPrice(item.sellingPrice.toString());
+    setSellingPrice(item.sellingPrice);
     setEditingId(item.id);
     setView('form');
   };
@@ -130,7 +129,7 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
   const currentFoodCostPerPortion = currentBatchCost / (currentYield > 0 ? currentYield : 1);
   const currentHPP = calculatePerPortionHPP();
   const currentRecommended = currentHPP + (currentHPP * ((parseFloat(margin) || 0) / 100));
-  const currentActualMargin = sellingPrice ? ((parseFloat(sellingPrice) - currentHPP) / currentHPP) * 100 : parseFloat(margin);
+  const currentActualMargin = sellingPrice ? ((sellingPrice - currentHPP) / currentHPP) * 100 : parseFloat(margin);
   const isLowMargin = currentActualMargin < 10;
 
   if (view === 'form') {
@@ -243,12 +242,11 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Biaya Lain <span className="text-red-500">per Porsi</span></label>
-                  <input 
-                    type="number" 
+                  <MoneyInput 
                     value={overhead} 
-                    onChange={e => setOverhead(e.target.value)}
+                    onChange={setOverhead}
                     className="w-full bg-white text-gray-900 border border-gray-300 rounded-lg p-2 focus:border-emerald-500" 
-                    placeholder="Kemasan/Gas (Rp)" 
+                    placeholder="Kemasan/Gas" 
                   />
                 </div>
                 <div>
@@ -277,9 +275,13 @@ export const MenuBuilder: React.FC<MenuBuilderProps> = ({ ingredients, menu, set
 
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-1">Harga Jual Menu</label>
-              <input required type="number" value={sellingPrice} onChange={e => setSellingPrice(e.target.value)}
+              <MoneyInput 
+                required
+                value={sellingPrice} 
+                onChange={setSellingPrice}
                 className={`w-full bg-white border-2 rounded-lg p-3 text-lg font-semibold ${isLowMargin ? 'border-red-300 focus:border-red-500 text-red-700' : 'border-emerald-300 focus:border-emerald-500 text-emerald-700'}`} 
-                placeholder={currentRecommended.toString()} />
+                placeholder={currentRecommended.toString()} 
+              />
               {isLowMargin && (
                 <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                   <AlertTriangle size={12} /> Hati-hati! Margin keuntungan di bawah 10%

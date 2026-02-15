@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Package } from 'lucide-react';
 import { Ingredient } from '../types';
 import { formatCurrency } from '../constants';
+import { MoneyInput } from './MoneyInput';
 
 interface InventoryProps {
   ingredients: Ingredient[];
@@ -14,13 +15,13 @@ export const Inventory: React.FC<InventoryProps> = ({ ingredients, setIngredient
   
   // Form State
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState<number>(0);
   const [unit, setUnit] = useState('gram');
   const [amount, setAmount] = useState('');
 
   const resetForm = () => {
     setName('');
-    setPrice('');
+    setPrice(0);
     setUnit('gram');
     setAmount('');
     setEditingId(null);
@@ -29,7 +30,7 @@ export const Inventory: React.FC<InventoryProps> = ({ ingredients, setIngredient
 
   const handleEdit = (ing: Ingredient) => {
     setName(ing.name);
-    setPrice(ing.purchasePrice.toString());
+    setPrice(ing.purchasePrice);
     setUnit(ing.purchaseUnit);
     setAmount(ing.purchaseAmount.toString());
     setEditingId(ing.id);
@@ -51,8 +52,6 @@ export const Inventory: React.FC<InventoryProps> = ({ ingredients, setIngredient
     if (selectedUnit === 'kg' || selectedUnit === 'liter') {
       setAmount('1000');
     } else if (selectedUnit === 'gram' || selectedUnit === 'ml') {
-      // Jika balik ke gram/ml, opsional: bisa direset atau biarkan
-      // Disini kita biarkan user isi manual jika bukan kg/l, atau default 1 jika kosong
       if (!amount) setAmount('1');
     }
   };
@@ -60,16 +59,15 @@ export const Inventory: React.FC<InventoryProps> = ({ ingredients, setIngredient
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const pPrice = parseFloat(price);
     const pAmount = parseFloat(amount);
     
     // Auto calculate cost per smallest unit
-    const costPerSmallestUnit = pPrice / pAmount;
+    const costPerSmallestUnit = price / pAmount;
 
     const newIngredient: Ingredient = {
       id: editingId || Date.now().toString(),
       name,
-      purchasePrice: pPrice,
+      purchasePrice: price,
       purchaseUnit: unit,
       purchaseAmount: pAmount,
       costPerSmallestUnit
@@ -114,12 +112,11 @@ export const Inventory: React.FC<InventoryProps> = ({ ingredients, setIngredient
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli (Rp)</label>
-                <input 
-                  required 
-                  type="number" 
+                <label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli</label>
+                <MoneyInput 
+                  required
                   value={price} 
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={setPrice}
                   className="w-full bg-white text-gray-900 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                   placeholder="0"
                 />

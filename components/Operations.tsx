@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Lock, Save, Share2, AlertCircle } from 'lucide-react';
+import { Play, Lock, Save, Share2, AlertCircle, RefreshCcw } from 'lucide-react';
 import { DailyRecord, MenuItem, DailySaleItem } from '../types';
 import { formatCurrency } from '../constants';
+import { MoneyInput } from './MoneyInput';
 
 interface OperationsProps {
   menu: MenuItem[];
@@ -11,7 +12,7 @@ interface OperationsProps {
 }
 
 export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setDailyRecords, todayRecord }) => {
-  const [target, setTarget] = useState('');
+  const [target, setTarget] = useState<number>(0);
   const [salesInput, setSalesInput] = useState<{ [key: string]: { cooked: string; leftover: string } }>({});
 
   const handleStartDay = (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
     const newRecord: DailyRecord = {
       id: new Date().toISOString().split('T')[0], // YYYY-MM-DD
       date: new Date().toISOString(),
-      targetProfit: parseFloat(target),
+      targetProfit: target,
       sales: [],
       totalRevenue: 0,
       totalCost: 0,
@@ -41,7 +42,7 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
 
   const handleCloseStore = () => {
     if (!todayRecord) return;
-    if (!window.confirm("Yakin tutup toko? Data hari ini akan disimpan dan tidak bisa diubah lagi.")) return;
+    if (!window.confirm("Yakin tutup toko? Data hari ini akan disimpan.")) return;
 
     let totalRev = 0;
     let totalCst = 0;
@@ -79,6 +80,17 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
     setDailyRecords(dailyRecords.map(r => r.id === todayRecord.id ? updatedRecord : r));
   };
 
+  const handleReopenStore = () => {
+     if (!todayRecord) return;
+     if (!window.confirm("Ingin merevisi data hari ini? Toko akan dibuka kembali.")) return;
+
+     const updatedRecord: DailyRecord = {
+      ...todayRecord,
+      isClosed: false
+    };
+    setDailyRecords(dailyRecords.map(r => r.id === todayRecord.id ? updatedRecord : r));
+  };
+
   const handleShareWA = (record: DailyRecord) => {
     const lines = [
       `*Laporan Cuanly - ${new Date(record.date).toLocaleDateString('id-ID')}*`,
@@ -109,12 +121,11 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
         </div>
         <form onSubmit={handleStartDay} className="w-full max-w-xs space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Profit Bersih (Rp)</label>
-            <input 
-              required 
-              type="number" 
-              value={target} 
-              onChange={e => setTarget(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Target Profit Bersih</label>
+            <MoneyInput 
+              required
+              value={target}
+              onChange={setTarget}
               className="w-full bg-white text-gray-900 text-center text-lg py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
               placeholder="200000"
             />
@@ -157,6 +168,13 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
         >
           <Share2 size={20} /> Share Laporan ke WA
         </button>
+
+        <button 
+          onClick={handleReopenStore}
+          className="w-full py-3 bg-white border border-gray-300 text-gray-600 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-50"
+        >
+          <RefreshCcw size={18} /> Buka Kembali (Revisi)
+        </button>
       </div>
     );
   }
@@ -177,7 +195,7 @@ export const Operations: React.FC<OperationsProps> = ({ menu, dailyRecords, setD
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Lock size={20} className="text-gray-700" />
-          <h2 className="text-xl font-bold text-gray-800">Tutup Toko (Input Penjualan)</h2>
+          <h2 className="text-xl font-bold text-gray-800">Tutup Toko (Hitung Stok)</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">Masukkan jumlah yang dimasak dan sisa untuk menghitung profit akurat.</p>
 
